@@ -55,14 +55,7 @@ class BumpReminder(commands.Cog):
             return True, None
         return ctx.channel.id == restricted, restricted
 
-    @commands.command(aliases=['bs'])
-    async def bumpstatus(self, ctx):
-        """Shows the time remaining for the next bump."""
-        allowed, restricted_id = self._is_allowed_channel(ctx)
-        if not allowed:
-            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
-            return
-            
+    async def _do_bumpstatus(self, ctx):
         settings = self._load_settings()
         next_bump = settings.get('next_bump_time')
         
@@ -78,12 +71,22 @@ class BumpReminder(commands.Cog):
             minutes = (remaining % 3600) // 60
             await ctx.send(f"The next bump is available in {hours}h {minutes}m.")
 
-    @commands.command(aliases=['sb'])
-    @commands.has_permissions(administrator=True)
-    async def setbump(self, ctx, *, arg: str):
-        """Manually sets the bump reminder timer OR sets the restricted bump channel."""
+    @commands.command(aliases=['bs'])
+    async def bumpstatus(self, ctx):
+        """Shows the time remaining for the next bump."""
+        allowed, restricted_id = self._is_allowed_channel(ctx)
+        if not allowed:
+            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+            return
+            
+        await self._do_bumpstatus(ctx)
+
+    async def _do_setbump(self, ctx, arg: str, check_admin=False):
         # Check if argument is a channel mention
         if arg.startswith('<#') and arg.endswith('>'):
+            if check_admin and not ctx.author.guild_permissions.administrator:
+                await ctx.send("❌ Only administrators can restrict the bump channel!")
+                return
             channel_id = int(arg[2:-1])
             channel = self.bot.get_channel(channel_id)
             if channel:
@@ -95,6 +98,9 @@ class BumpReminder(commands.Cog):
         
         # If the argument is exactly "remove", we remove the restriction
         if arg.lower() == "remove":
+            if check_admin and not ctx.author.guild_permissions.administrator:
+                await ctx.send("❌ Only administrators can remove the bump channel restriction!")
+                return
             settings = self._load_settings()
             if 'bump_restricted_channel' in settings:
                 del settings['bump_restricted_channel']
@@ -103,11 +109,6 @@ class BumpReminder(commands.Cog):
             return
             
         # Otherwise, parse it as time
-        allowed, restricted_id = self._is_allowed_channel(ctx)
-        if not allowed:
-            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
-            return
-            
         total_seconds = 0
         h_match = re.search(r'(\d+)\s*h', arg, re.IGNORECASE)
         m_match = re.search(r'(\d+)\s*m', arg, re.IGNORECASE)
@@ -129,10 +130,35 @@ class BumpReminder(commands.Cog):
         else:
             await ctx.send("❌ Invalid time format! Please use `1h 46m` or `#channel` to restrict.")
 
+    @commands.command(aliases=['sb'])
+    @commands.has_permissions(administrator=True)
+    async def setbump(self, ctx, *, arg: str):
+        """Manually sets the bump reminder timer OR sets the restricted bump channel."""
+        allowed, restricted_id = self._is_allowed_channel(ctx)
+        if not allowed:
+            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+            return
+            
+        await self._do_setbump(ctx, arg, check_admin=False)
+
     @commands.Cog.listener()
     async def on_message(self, message):
-        # Ignore messages from bots other than Disboard
+        # Allow prefix-less commands if in restricted bump channel
         if not message.author.bot:
+            settings = self._load_settings()
+            restricted = settings.get('bump_restricted_channel')
+            if restricted and message.channel.id == restricted:
+                content_lower = message.content.strip().lower()
+                if content_lower in ("bs", "bumpstatus"):
+                    ctx = await self.bot.get_context(message)
+                    await self._do_bumpstatus(ctx)
+                    return
+                elif content_lower.startswith("sb ") or content_lower.startswith("setbump "):
+                    prefix_len = 3 if content_lower.startswith("sb ") else 8
+                    arg = message.content.strip()[prefix_len:].strip()
+                    ctx = await self.bot.get_context(message)
+                    await self._do_setbump(ctx, arg, check_admin=True)
+                    return
             return
             
         if message.author.id == self.disboard_id:
