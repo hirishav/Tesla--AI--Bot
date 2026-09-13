@@ -160,6 +160,13 @@ async def help(ctx):
         inline=False
     )
 
+    # welcome commands
+    embed.add_field(
+        name="`tesla welcome setup <#channel> <time> <message>`",
+        value="Configures an auto-deleting welcome message for new members.\nSee `tesla welcome` for more details.",
+        inline=False
+    )
+
     # ai assistant
     embed.add_field(
         name="`@Tesla <message>`",
