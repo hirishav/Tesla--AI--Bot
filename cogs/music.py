@@ -20,8 +20,13 @@ ytdl_format_options = {
     'logtostderr': False,
     'quiet': True,
     'no_warnings': True,
-    'default_search': 'scsearch',
+    'default_search': 'ytsearch',
     'source_address': '0.0.0.0',
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['android']
+        }
+    }
 }
 
 ffmpeg_options = {
@@ -63,7 +68,11 @@ class Music(commands.Cog):
             if ctx.voice_client is None:
                 await channel.connect()
             else:
-                await ctx.voice_client.move_to(channel)
+                if not ctx.voice_client.is_connected():
+                    await ctx.voice_client.disconnect(force=True)
+                    await channel.connect()
+                elif ctx.voice_client.channel != channel:
+                    await ctx.voice_client.move_to(channel)
         else:
             await ctx.send("You are not connected to a voice channel.")
 
@@ -82,12 +91,20 @@ class Music(commands.Cog):
                 except Exception as e:
                     await ctx.send(f"❌ Could not connect to the voice channel: {e}")
                     return
-            elif ctx.voice_client.channel != channel:
-                try:
-                    await ctx.voice_client.move_to(channel)
-                except Exception as e:
-                    await ctx.send(f"❌ Could not move to the voice channel: {e}")
-                    return
+            else:
+                if not ctx.voice_client.is_connected():
+                    try:
+                        await ctx.voice_client.disconnect(force=True)
+                        await channel.connect()
+                    except Exception as e:
+                        await ctx.send(f"❌ Could not reconnect to the voice channel: {e}")
+                        return
+                elif ctx.voice_client.channel != channel:
+                    try:
+                        await ctx.voice_client.move_to(channel)
+                    except Exception as e:
+                        await ctx.send(f"❌ Could not move to the voice channel: {e}")
+                        return
 
         # Stop currently playing audio
         if ctx.voice_client.is_playing():
