@@ -141,8 +141,13 @@ class BumpReminder(commands.Cog):
             if time.time() >= next_bump:
                 channel = self.bot.get_channel(channel_id)
                 if channel:
-                    ping_text = f"<@&{role_id}> " if role_id else ""
-                    await channel.send(f"⏰ **BUMP TIME!** ⏰\n{ping_text}It's time to use `/bump` to bump the server again on Disboard!")
+                    ping_text = f"<@&{role_id}>" if role_id else ""
+                    embed = discord.Embed(
+                        title="⏰ BUMP TIME! ⏰",
+                        description="It's time to bump the server again!\nPlease use the `/bump` command to bump the server on Disboard.",
+                        color=0x2b2d31  # Discord dark theme color to look clean
+                    )
+                    await channel.send(content=ping_text, embed=embed)
                 
                 # Clear the reminder
                 settings['next_bump_time'] = None
