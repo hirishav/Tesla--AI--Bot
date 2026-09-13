@@ -1,0 +1,7 @@
+discord.py
+groq
+python-dotenv
+
+pynacl
+yt-dlp
+imageio-ffmpeg
