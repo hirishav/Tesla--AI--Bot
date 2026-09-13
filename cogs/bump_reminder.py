@@ -69,7 +69,8 @@ class BumpReminder(commands.Cog):
         else:
             hours = remaining // 3600
             minutes = (remaining % 3600) // 60
-            await ctx.send(f"The next bump is available in {hours}h {minutes}m.")
+            seconds = remaining % 60
+            await ctx.send(f"The next bump is available in {hours}h {minutes}m {seconds}s.")
 
     @commands.command(aliases=['bs'])
     async def bumpstatus(self, ctx):
@@ -140,6 +141,23 @@ class BumpReminder(commands.Cog):
             return
             
         await self._do_setbump(ctx, arg, check_admin=False)
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def bumptest(self, ctx):
+        """Immediately trigger a fake bump reminder to test the ping."""
+        settings = self._load_settings()
+        role_id = settings.get('bump_role')
+        
+        ping_text = f"\n\n🔔 <@&{role_id}>" if role_id else ""
+        embed = discord.Embed(
+            title="⏰ BUMP TIME! (TEST) ⏰",
+            description=f"It's time to bump the server again!\nPlease use the `/bump` command to bump the server on Disboard.{ping_text}",
+            color=0x2b2d31
+        )
+        
+        msg_content = f"<@&{role_id}>" if role_id else None
+        await ctx.send(content=msg_content, embed=embed)
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -226,7 +244,9 @@ class BumpReminder(commands.Cog):
                         description=f"It's time to bump the server again!\nPlease use the `/bump` command to bump the server on Disboard.{ping_text}",
                         color=0x2b2d31  # Discord dark theme color to look clean
                     )
-                    await channel.send(embed=embed)
+                    
+                    msg_content = f"<@&{role_id}>" if role_id else None
+                    await channel.send(content=msg_content, embed=embed)
                 
                 # Clear the reminder
                 settings['next_bump_time'] = None
