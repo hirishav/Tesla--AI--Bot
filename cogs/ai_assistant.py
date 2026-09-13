@@ -62,7 +62,7 @@ class AIAssistant(commands.Cog):
 
             try:
                 # Send an initial message to show we're thinking
-                reply_msg = await message.reply("🤔 Thinking...")
+                sent_messages = [await message.reply("🤔 Thinking...")]
                 
                 messages = [
                     {"role": "system", "content": self.system_instruction},
@@ -99,10 +99,19 @@ class AIAssistant(commands.Cog):
                             # Only edit message every 1.5 seconds to avoid Discord rate limits
                             current_time = time.time()
                             if current_time - last_edit_time > 1.5:
-                                if len(full_text) > 1900:
-                                    await reply_msg.edit(content=full_text[:1900] + "... (message too long)")
-                                else:
-                                    await reply_msg.edit(content=full_text)
+                                chunks = [full_text[i:i+1900] for i in range(0, len(full_text), 1900)]
+                                
+                                # Create new messages if we need more chunks
+                                while len(sent_messages) < len(chunks):
+                                    # Edit the previous message one last time to ensure it's complete before moving on
+                                    if len(sent_messages) > 0 and len(chunks) > 1:
+                                        await sent_messages[-1].edit(content=chunks[len(sent_messages)-1])
+                                    sent_messages.append(await message.channel.send("..."))
+                                    
+                                # Edit the last message with the latest chunk
+                                if chunks:
+                                    await sent_messages[-1].edit(content=chunks[-1])
+                                    
                                 last_edit_time = current_time
 
                 # Check if we accumulated any tool calls
@@ -115,7 +124,11 @@ class AIAssistant(commands.Cog):
                                 song_name = args.get("song_name")
                                 if song_name:
                                     full_text += f"\n🎵 I will now play **{song_name}** for you!"
-                                    await reply_msg.edit(content=full_text)
+                                    
+                                    chunks = [full_text[i:i+1900] for i in range(0, len(full_text), 1900)]
+                                    while len(sent_messages) < len(chunks):
+                                        sent_messages.append(await message.channel.send("..."))
+                                    await sent_messages[-1].edit(content=chunks[-1])
                                     
                                     # Get the music cog and invoke play
                                     music_cog = self.bot.get_cog("Music")
@@ -126,10 +139,14 @@ class AIAssistant(commands.Cog):
                                 print(f"Error parsing tool call args: {args_str}")
                 else:
                     # Final edit to ensure the complete message is sent
-                    if len(full_text) > 1900:
-                        await reply_msg.edit(content=full_text[:1900] + "... (message too long, truncated)")
-                    elif full_text:
-                        await reply_msg.edit(content=full_text)
+                    if full_text:
+                        chunks = [full_text[i:i+1900] for i in range(0, len(full_text), 1900)]
+                        while len(sent_messages) < len(chunks):
+                            sent_messages.append(await message.channel.send("..."))
+                        
+                        # Only update the last chunk to save API calls
+                        if chunks:
+                            await sent_messages[-1].edit(content=chunks[-1])
                     
             except Exception as e:
                 print(f"Error generating AI response: {e}")
