@@ -32,6 +32,10 @@ bot.settings = load_settings()
 
 @bot.check
 async def globally_block_channels(ctx):
+    # Owner can use the bot anywhere
+    if ctx.author.id == bot.owner_id:
+        return True
+
     # Only check if restricted_channel is set and we're not running setchannel itself
     if ctx.command and ctx.command.name in ('setchannel', 'help', 'ss'):
         return True # let owner/admins run these anywhere, or at least let it proceed to command logic

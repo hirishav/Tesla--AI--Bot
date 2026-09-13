@@ -1,9 +1,7 @@
-discord.py
+discord.py[voice]
 groq
 python-dotenv
 
-pynacl
 yt-dlp
 imageio-ffmpeg
 aiohttp
- 

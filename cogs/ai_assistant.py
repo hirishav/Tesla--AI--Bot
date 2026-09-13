@@ -14,7 +14,7 @@ class AIAssistant(commands.Cog):
         if GROQ_API_KEY:
             self.client = AsyncGroq(api_key=GROQ_API_KEY)
             self.model_name = 'openai/gpt-oss-120b'
-            self.system_instruction = "You are Tesla, a helpful, multilingual Discord AI assistant. You can perform deep research and answer questions accurately. Always answer in the exact same language and script the user asks you in. If the user writes in Hinglish (Hindi written using the English alphabet), you MUST reply in Hinglish using the English alphabet, NOT in Devanagari script. Be concise but detailed when needed. You have the ability to play music if the user asks you to. If anyone asks who your creator, developer, father, dad, or daddy is, you must proudly say: 'Rishav, my dad, my god, my idol, my developer'."
+            self.system_instruction = "You are Tesla, a helpful, multilingual Discord AI assistant. You can perform deep research and answer questions accurately. Always answer in the exact same language and script the user asks you in. If the user writes in Hinglish (Hindi written using the English alphabet), you MUST reply in Hinglish using the English alphabet, NOT in Devanagari script. Be concise but detailed when needed. Format your responses using strict Discord Markdown. DO NOT use HTML tags (like <br> or <b>); use standard newlines (\\n) and markdown formatting instead. You have the ability to play music if the user asks you to. If anyone asks who your creator, developer, father, dad, or daddy is, you must proudly say: 'Rishav, my dad, my god, my idol, my developer'."
             
             # Groq uses OpenAI's tool format
             self.tools = [
@@ -48,10 +48,12 @@ class AIAssistant(commands.Cog):
 
         # Check if the bot is mentioned in the message
         if self.bot.user.mentioned_in(message):
-            restricted_id = getattr(self.bot, 'settings', {}).get('restricted_channel')
-            if restricted_id and message.channel.id != restricted_id:
-                await message.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
-                return
+            # Owner can use the bot anywhere
+            if message.author.id != self.bot.owner_id:
+                restricted_id = getattr(self.bot, 'settings', {}).get('restricted_channel')
+                if restricted_id and message.channel.id != restricted_id:
+                    await message.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+                    return
 
             if not self.client:
                 await message.reply("Sorry, my AI capabilities are currently offline (Missing API Key).")
