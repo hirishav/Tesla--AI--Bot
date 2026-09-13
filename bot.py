@@ -60,6 +60,46 @@ async def ss_error(ctx, error):
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("❌ Missing arguments!\nUsage: `tesla ss <idle/dnd/online> <watching/listening/playing> <message>`")
 
+@bot.command()
+async def help(ctx):
+    """Shows this help message with all commands."""
+    embed = discord.Embed(title="Tesla Bot Commands", color=0x00ff00)
+    
+    # ss command
+    embed.add_field(
+        name="`tesla ss <idle/dnd/online/offline> <watching/listening/playing/streaming> <status_message>`",
+        value="Updates the bot's status and activity. **(Bot Owner Only)**\n*Example:* `tesla ss idle watching You<3`",
+        inline=False
+    )
+    
+    # reminder command
+    embed.add_field(
+        name="`tesla reminder every <time> <@role/@user/id> <Reason>`",
+        value="Sets a recurring reminder that pings the target role or user.\n*Time formats:* 2h30m, 1week3d, 1month1week1d, 1h, 1m, 1s\n*Example:* `tesla reminder every 2h30m @Gamer Drink water!`\n\n**Other subcommands:**\n`tesla reminder list` - Shows all reminders\n`tesla reminder stop <id>` - Removes a reminder by ID",
+        inline=False
+    )
+    
+    # music commands
+    embed.add_field(
+        name="`tesla play <song/url>`",
+        value="Plays music in your voice channel.",
+        inline=False
+    )
+    embed.add_field(
+        name="`tesla join` / `tesla leave`",
+        value="Joins or leaves the voice channel.",
+        inline=False
+    )
+
+    # ai assistant
+    embed.add_field(
+        name="`@Tesla <message>`",
+        value="Chat with me! Just mention me and I will reply to you.",
+        inline=False
+    )
+    
+    await ctx.send(embed=embed)
+
 
 async def load_cogs():
     """Load all cogs from the cogs directory."""
