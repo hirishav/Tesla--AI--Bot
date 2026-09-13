@@ -69,15 +69,22 @@ class Music(commands.Cog):
     async def play(self, ctx, *, query):
         """Plays a url or search query"""
         async with ctx.typing():
+            if not ctx.author.voice:
+                await ctx.send("❌ You are not connected to a voice channel.")
+                return
+                
+            channel = ctx.author.voice.channel
             if ctx.voice_client is None:
-                if ctx.author.voice:
-                    try:
-                        await ctx.author.voice.channel.connect()
-                    except Exception as e:
-                        await ctx.send(f"❌ Could not connect to the voice channel: {e}")
-                        return
-                else:
-                    await ctx.send("❌ You are not connected to a voice channel.")
+                try:
+                    await channel.connect()
+                except Exception as e:
+                    await ctx.send(f"❌ Could not connect to the voice channel: {e}")
+                    return
+            elif ctx.voice_client.channel != channel:
+                try:
+                    await ctx.voice_client.move_to(channel)
+                except Exception as e:
+                    await ctx.send(f"❌ Could not move to the voice channel: {e}")
                     return
 
         # Stop currently playing audio
