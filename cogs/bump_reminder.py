@@ -153,12 +153,19 @@ class BumpReminder(commands.Cog):
                     ctx = await self.bot.get_context(message)
                     await self._do_bumpstatus(ctx)
                     return
-                elif content_lower.startswith("sb ") or content_lower.startswith("setbump "):
-                    prefix_len = 3 if content_lower.startswith("sb ") else 8
+                elif content_lower.startswith("sb ") or content_lower.startswith("setbump ") or content_lower.startswith("bp "):
+                    prefix_len = 8 if content_lower.startswith("setbump ") else 3
                     arg = message.content.strip()[prefix_len:].strip()
                     ctx = await self.bot.get_context(message)
                     await self._do_setbump(ctx, arg, check_admin=True)
                     return
+                else:
+                    # Check if it's just a time string like "46m" or "1h 30m"
+                    m = re.fullmatch(r'(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?', content_lower)
+                    if m and (m.group(1) or m.group(2)):
+                        ctx = await self.bot.get_context(message)
+                        await self._do_setbump(ctx, content_lower, check_admin=True)
+                        return
             return
             
         if message.author.id == self.disboard_id:
