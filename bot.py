@@ -141,6 +141,13 @@ async def help(ctx):
         inline=False
     )
     
+    # bump reminder command
+    embed.add_field(
+        name="`tesla setbumprole <@role>`",
+        value="Sets the role to ping when it is time to bump the server on Disboard. (Admins only)\n*Example:* `tesla setbumprole @Bumpers`\nRun without a role to remove the ping.",
+        inline=False
+    )
+    
     # reminder command
     embed.add_field(
         name="`tesla reminder every <time> <@role/@user/id> <Reason>`",
