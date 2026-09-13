@@ -48,9 +48,21 @@ class BumpReminder(commands.Cog):
                 self._save_settings(settings)
             await ctx.send("✅ Bump reminder role has been removed. It will no longer ping a specific role.")
 
-    @commands.command()
+    def _is_allowed_channel(self, ctx):
+        settings = self._load_settings()
+        restricted = settings.get('bump_restricted_channel')
+        if not restricted:
+            return True, None
+        return ctx.channel.id == restricted, restricted
+
+    @commands.command(aliases=['bs'])
     async def bumpstatus(self, ctx):
         """Shows the time remaining for the next bump."""
+        allowed, restricted_id = self._is_allowed_channel(ctx)
+        if not allowed:
+            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+            return
+            
         settings = self._load_settings()
         next_bump = settings.get('next_bump_time')
         
@@ -66,13 +78,39 @@ class BumpReminder(commands.Cog):
             minutes = (remaining % 3600) // 60
             await ctx.send(f"The next bump is available in {hours}h {minutes}m.")
 
-    @commands.command()
+    @commands.command(aliases=['sb'])
     @commands.has_permissions(administrator=True)
-    async def setbump(self, ctx, *, time_str: str):
-        """Manually sets the bump reminder timer (e.g. 1h 46m or 46m)"""
+    async def setbump(self, ctx, *, arg: str):
+        """Manually sets the bump reminder timer OR sets the restricted bump channel."""
+        # Check if argument is a channel mention
+        if arg.startswith('<#') and arg.endswith('>'):
+            channel_id = int(arg[2:-1])
+            channel = self.bot.get_channel(channel_id)
+            if channel:
+                settings = self._load_settings()
+                settings['bump_restricted_channel'] = channel.id
+                self._save_settings(settings)
+                await ctx.send(f"✅ Bump commands are now restricted to {channel.mention}.")
+                return
+        
+        # If the argument is exactly "remove", we remove the restriction
+        if arg.lower() == "remove":
+            settings = self._load_settings()
+            if 'bump_restricted_channel' in settings:
+                del settings['bump_restricted_channel']
+                self._save_settings(settings)
+            await ctx.send("✅ Bump channel restriction removed.")
+            return
+            
+        # Otherwise, parse it as time
+        allowed, restricted_id = self._is_allowed_channel(ctx)
+        if not allowed:
+            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+            return
+            
         total_seconds = 0
-        h_match = re.search(r'(\d+)\s*h', time_str, re.IGNORECASE)
-        m_match = re.search(r'(\d+)\s*m', time_str, re.IGNORECASE)
+        h_match = re.search(r'(\d+)\s*h', arg, re.IGNORECASE)
+        m_match = re.search(r'(\d+)\s*m', arg, re.IGNORECASE)
         
         if h_match:
             total_seconds += int(h_match.group(1)) * 3600
@@ -89,7 +127,7 @@ class BumpReminder(commands.Cog):
             minutes = (total_seconds % 3600) // 60
             await ctx.send(f"✅ I have manually synced the bump timer! I will remind you to bump again in {hours}h {minutes}m.")
         else:
-            await ctx.send("❌ Invalid time format! Please use `1h 46m` or `46m`.")
+            await ctx.send("❌ Invalid time format! Please use `1h 46m` or `#channel` to restrict.")
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -107,6 +145,9 @@ class BumpReminder(commands.Cog):
                 # Disboard usually says "Bump done!" in the description
                 if "bump done" in description.lower() or "bump done" in title.lower():
                     settings = self._load_settings()
+                    restricted = settings.get('bump_restricted_channel')
+                    if restricted and message.channel.id != restricted:
+                        return # Ignore bumps outside restricted channel
                     
                     # Store the channel ID and the timestamp when the next bump is due
                     settings['next_bump_time'] = time.time() + self.bump_duration
@@ -116,6 +157,11 @@ class BumpReminder(commands.Cog):
                     await message.channel.send("⏱️ **Bump detected!** I will remind you to bump again in exactly 2 hours.")
                 # Check for cooldown message
                 elif "wait another" in description.lower():
+                    settings = self._load_settings()
+                    restricted = settings.get('bump_restricted_channel')
+                    if restricted and message.channel.id != restricted:
+                        return # Ignore cooldowns outside restricted channel
+                        
                     match = re.search(r'wait another (?:(\d+)\s*hour[s]?)?\s*(?:(\d+)\s*minute[s]?)?', description, re.IGNORECASE)
                     if match:
                         hours = int(match.group(1)) if match.group(1) else 0

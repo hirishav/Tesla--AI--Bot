@@ -143,15 +143,8 @@ async def help(ctx):
     
     # bump reminder command
     embed.add_field(
-        name="`tesla setbumprole <@role>` / `tesla setbump <time>` / `tesla bumpstatus`",
-        value="**setbumprole**: Sets the role to ping when it is time to bump the server.\n**setbump**: Manually sets the bump timer (e.g., `tesla setbump 1h 46m`).\n**bumpstatus**: Shows how much time is left until the next bump.",
-        inline=False
-    )
-    
-    # reminder command
-    embed.add_field(
-        name="`tesla reminder every <time> <@role/@user/id> <Reason>`",
-        value="Sets a recurring reminder that pings the target role or user.\n*Time formats:* 2h30m, 1week3d, 1month1week1d, 1h, 1m, 1s\n*Example:* `tesla reminder every 2h30m @Gamer Drink water!`\n\n**Other subcommands:**\n`tesla reminder list` - Shows all reminders\n`tesla reminder stop <id>` - Removes a reminder by ID",
+        name="`tesla setbumprole <@role>` / `tesla setbump/sb <#channel/time>` / `tesla bumpstatus/bs`",
+        value="**setbumprole**: Sets the role to ping when it is time to bump.\n**setbump / sb**: Can be used to restrict bump commands to a `#channel`, OR manually set the timer (e.g., `tesla sb 1h 46m`).\n**bumpstatus / bs**: Shows how much time is left until the next bump.",
         inline=False
     )
     
