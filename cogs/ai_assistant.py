@@ -43,6 +43,28 @@ class AIAssistant(commands.Cog):
                             "required": ["song_name"]
                         }
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "join_voice",
+                        "description": "Joins the voice channel that the user is currently in. Use this when the user explicitly asks you to join a voice channel.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "leave_voice",
+                        "description": "Leaves the current voice channel. Use this when the user asks you to leave, stop, or disconnect.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {}
+                        }
+                    }
                 }
             ]
         else:
@@ -153,6 +175,30 @@ class AIAssistant(commands.Cog):
                                         self.bot.loop.create_task(ctx.invoke(music_cog.play, query=song_name))
                             except json.JSONDecodeError:
                                 print(f"Error parsing tool call args: {args_str}")
+                                
+                        elif tc_data["name"] == "join_voice":
+                            full_text += "\n🎙️ Joining your voice channel!"
+                            chunks = [full_text[i:i+1900] for i in range(0, len(full_text), 1900)]
+                            while len(sent_messages) < len(chunks):
+                                sent_messages.append(await message.channel.send("..."))
+                            await sent_messages[-1].edit(content=chunks[-1])
+                            
+                            music_cog = self.bot.get_cog("Music")
+                            if music_cog:
+                                ctx = await self.bot.get_context(message)
+                                self.bot.loop.create_task(ctx.invoke(music_cog.join))
+                                
+                        elif tc_data["name"] == "leave_voice":
+                            full_text += "\n👋 Leaving the voice channel!"
+                            chunks = [full_text[i:i+1900] for i in range(0, len(full_text), 1900)]
+                            while len(sent_messages) < len(chunks):
+                                sent_messages.append(await message.channel.send("..."))
+                            await sent_messages[-1].edit(content=chunks[-1])
+                            
+                            music_cog = self.bot.get_cog("Music")
+                            if music_cog:
+                                ctx = await self.bot.get_context(message)
+                                self.bot.loop.create_task(ctx.invoke(music_cog.leave))
                 else:
                     # Final edit to ensure the complete message is sent
                     if full_text:

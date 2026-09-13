@@ -44,6 +44,8 @@ class YTDLSource(discord.PCMVolumeTransformer):
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
         if 'entries' in data:
+            if not data['entries']:
+                raise Exception("No search results found.")
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
