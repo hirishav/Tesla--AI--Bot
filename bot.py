@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import asyncio
+from aiohttp import web
 from config import DISCORD_TOKEN
 
 # Set up intents
@@ -31,6 +32,23 @@ async def load_cogs():
             except Exception as e:
                 print(f'Failed to load cog {filename}: {e}')
 
+# --- Dummy Web Server for Render ---
+async def handle_ping(request):
+    return web.Response(text="Tesla Bot is alive and running!")
+
+async def start_web_server():
+    """Starts a dummy web server to keep Render happy."""
+    app = web.Application()
+    app.router.add_get('/', handle_ping)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    
+    port = int(os.environ.get("PORT", 8080))
+    site = web.TCPSite(runner, '0.0.0.0', port)
+    await site.start()
+    print(f"Dummy Web server started on port {port} for Render")
+# -----------------------------------
+
 async def main():
     if not DISCORD_TOKEN:
         print("Error: DISCORD_TOKEN is missing. Please set it in your .env file.")
@@ -38,6 +56,8 @@ async def main():
         
     async with bot:
         await load_cogs()
+        # Start the web server before the bot
+        await start_web_server()
         await bot.start(DISCORD_TOKEN)
 
 if __name__ == '__main__':
