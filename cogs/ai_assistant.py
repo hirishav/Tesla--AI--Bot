@@ -134,7 +134,7 @@ class AIAssistant(commands.Cog):
                                     music_cog = self.bot.get_cog("Music")
                                     if music_cog:
                                         ctx = await self.bot.get_context(message)
-                                        self.bot.loop.create_task(music_cog.play(ctx, query=song_name))
+                                        self.bot.loop.create_task(ctx.invoke(music_cog.play, query=song_name))
                             except json.JSONDecodeError:
                                 print(f"Error parsing tool call args: {args_str}")
                 else:
