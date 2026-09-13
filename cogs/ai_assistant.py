@@ -48,6 +48,11 @@ class AIAssistant(commands.Cog):
 
         # Check if the bot is mentioned in the message
         if self.bot.user.mentioned_in(message):
+            restricted_id = getattr(self.bot, 'settings', {}).get('restricted_channel')
+            if restricted_id and message.channel.id != restricted_id:
+                await message.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+                return
+
             if not self.client:
                 await message.reply("Sorry, my AI capabilities are currently offline (Missing API Key).")
                 return

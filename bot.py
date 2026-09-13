@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 import asyncio
 from aiohttp import web
+import json
 from config import DISCORD_TOKEN, OWNER_ID
 
 # Set up intents
@@ -11,6 +12,38 @@ intents.message_content = True  # Required to read message content for mentions
 
 # Initialize bot
 bot = commands.Bot(command_prefix=["tesla ", "Tesla "], intents=intents, help_command=None, owner_id=OWNER_ID)
+
+SETTINGS_FILE = "settings.json"
+
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_settings(settings):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(settings, f, indent=4)
+
+bot.settings = load_settings()
+
+@bot.check
+async def globally_block_channels(ctx):
+    # Only check if restricted_channel is set and we're not running setchannel itself
+    if ctx.command and ctx.command.name in ('setchannel', 'help', 'ss'):
+        return True # let owner/admins run these anywhere, or at least let it proceed to command logic
+
+    restricted_id = bot.settings.get('restricted_channel')
+    if restricted_id and ctx.channel.id != restricted_id:
+        # Avoid sending multiple messages if check is evaluated multiple times
+        if not getattr(ctx, "restriction_handled", False):
+            await ctx.reply(f"I am restricted to <#{restricted_id}> only", silent=True)
+            ctx.restriction_handled = True
+        return False
+    return True
 
 @bot.event
 async def on_ready():
@@ -60,6 +93,31 @@ async def ss_error(ctx, error):
     elif isinstance(error, commands.MissingRequiredArgument):
         await ctx.send("❌ Missing arguments!\nUsage: `tesla ss <idle/dnd/online> <watching/listening/playing> <message>`")
 
+@bot.command(aliases=['sc'])
+@commands.has_permissions(administrator=True)
+async def setchannel(ctx, channel: discord.TextChannel = None):
+    """
+    Sets the restricted channel for the bot.
+    Usage: tesla setchannel #channel
+    """
+    if channel:
+        bot.settings['restricted_channel'] = channel.id
+        save_settings(bot.settings)
+        await ctx.send(f"✅ Bot is now restricted to {channel.mention}.")
+    else:
+        # If no channel is provided, remove restriction
+        if 'restricted_channel' in bot.settings:
+            del bot.settings['restricted_channel']
+            save_settings(bot.settings)
+        await ctx.send("✅ Bot restriction removed. It can now be used in any channel.")
+
+@setchannel.error
+async def setchannel_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("❌ You don't have permission to use this command! Only administrators can restrict the bot.", silent=True)
+    elif isinstance(error, commands.ChannelNotFound):
+        await ctx.send("❌ Channel not found.", silent=True)
+
 @bot.command()
 async def help(ctx):
     """Shows this help message with all commands."""
@@ -69,6 +127,13 @@ async def help(ctx):
     embed.add_field(
         name="`tesla ss <idle/dnd/online/offline> <watching/listening/playing/streaming> <status_message>`",
         value="Updates the bot's status and activity. **(Bot Owner Only)**\n*Example:* `tesla ss idle watching You<3`",
+        inline=False
+    )
+    
+    # settings command
+    embed.add_field(
+        name="`tesla setchannel / sc <#channel>`",
+        value="Restricts the bot to only reply in the specified channel. (Admins only)\n*Example:* `tesla sc #general`\nRun without a channel to remove the restriction.",
         inline=False
     )
     

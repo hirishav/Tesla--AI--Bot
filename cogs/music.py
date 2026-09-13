@@ -68,24 +68,28 @@ class Music(commands.Cog):
     @commands.command()
     async def play(self, ctx, *, query):
         """Plays a url or search query"""
-        if ctx.voice_client is None:
-            if ctx.author.voice:
-                await ctx.author.voice.channel.connect()
-            else:
-                await ctx.send("You are not connected to a voice channel.")
-                return
+        async with ctx.typing():
+            if ctx.voice_client is None:
+                if ctx.author.voice:
+                    try:
+                        await ctx.author.voice.channel.connect()
+                    except Exception as e:
+                        await ctx.send(f"❌ Could not connect to the voice channel: {e}")
+                        return
+                else:
+                    await ctx.send("❌ You are not connected to a voice channel.")
+                    return
 
         # Stop currently playing audio
         if ctx.voice_client.is_playing():
             ctx.voice_client.stop()
 
-        async with ctx.typing():
-            try:
-                player = await YTDLSource.from_url(query, loop=self.bot.loop, stream=True)
-                ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
-                await ctx.send(f'🎵 Now playing: **{player.title}**')
-            except Exception as e:
-                await ctx.send(f"An error occurred: {e}")
+        try:
+            player = await YTDLSource.from_url(query, loop=self.bot.loop, stream=True)
+            ctx.voice_client.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
+            await ctx.send(f'🎵 Now playing: **{player.title}**')
+        except Exception as e:
+            await ctx.send(f"An error occurred: {e}")
 
     @commands.command()
     async def leave(self, ctx):
