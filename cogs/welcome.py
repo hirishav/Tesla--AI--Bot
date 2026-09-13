@@ -214,8 +214,8 @@ class Welcome(commands.Cog):
         
         try:
             await channel.send(content=msg_text, delete_after=delete_after)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"Error sending welcome message: {e}")
 
 async def setup(bot):
     await bot.add_cog(Welcome(bot))

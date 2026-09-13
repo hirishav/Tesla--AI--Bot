@@ -9,6 +9,7 @@ from config import DISCORD_TOKEN, OWNER_ID
 # Set up intents
 intents = discord.Intents.default()
 intents.message_content = True  # Required to read message content for mentions
+intents.members = True          # Required for on_member_join events
 
 # Initialize bot
 bot = commands.Bot(command_prefix=["tesla ", "Tesla "], intents=intents, help_command=None, owner_id=OWNER_ID)
