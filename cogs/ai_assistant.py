@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from groq import AsyncGroq
+from groq import AsyncGroq  # type: ignore
 from config import GROQ_API_KEY
 import asyncio
 import time
