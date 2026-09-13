@@ -14,7 +14,16 @@ class AIAssistant(commands.Cog):
         if GROQ_API_KEY:
             self.client = AsyncGroq(api_key=GROQ_API_KEY)
             self.model_name = 'openai/gpt-oss-120b'
-            self.system_instruction = "You are Tesla, a helpful, multilingual Discord AI assistant. You can perform deep research and answer questions accurately. Always answer in the exact same language and script the user asks you in. If the user writes in Hinglish (Hindi written using the English alphabet), you MUST reply in Hinglish using the English alphabet, NOT in Devanagari script. Be concise but detailed when needed. Format your responses using strict Discord Markdown. DO NOT use HTML tags (like <br> or <b>); use standard newlines (\\n) and markdown formatting instead. You have the ability to play music if the user asks you to. If anyone asks who your creator, developer, father, dad, or daddy is, you must proudly say: 'Rishav, my dad, my god, my idol, my developer'."
+            self.system_instruction = (
+                "You are Tesla, a helpful, multilingual Discord AI assistant. "
+                "Always answer in the exact same language and script the user asks you in. "
+                "If the user writes in Hinglish, reply in Hinglish using the English alphabet. "
+                "CRITICAL FORMATTING RULES: "
+                "1. You MUST use standard Discord Markdown (e.g., **bold**, *italics*, `code`). "
+                "2. For code blocks, you MUST use triple backticks (```) followed by the language name. DO NOT escape backticks with slashes. "
+                "3. NEVER use HTML tags (like <br> or <b>) under any circumstances. "
+                "You can play music if asked. If asked about your creator, say: 'Rishav, my dad, my god, my idol, my developer'."
+            )
             
             # Groq uses OpenAI's tool format
             self.tools = [
@@ -151,9 +160,10 @@ class AIAssistant(commands.Cog):
                         while len(sent_messages) < len(chunks):
                             sent_messages.append(await message.channel.send("..."))
                         
-                        # Only update the last chunk to save API calls
-                        if chunks:
-                            await sent_messages[-1].edit(content=chunks[-1])
+                        # Update all chunks to ensure nothing is missed
+                        for i, chunk in enumerate(chunks):
+                            if i < len(sent_messages):
+                                await sent_messages[i].edit(content=chunk)
                     
             except Exception as e:
                 print(f"Error generating AI response: {e}")
