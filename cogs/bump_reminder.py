@@ -48,6 +48,49 @@ class BumpReminder(commands.Cog):
                 self._save_settings(settings)
             await ctx.send("✅ Bump reminder role has been removed. It will no longer ping a specific role.")
 
+    @commands.command()
+    async def bumpstatus(self, ctx):
+        """Shows the time remaining for the next bump."""
+        settings = self._load_settings()
+        next_bump = settings.get('next_bump_time')
+        
+        if not next_bump:
+            await ctx.send("There is no active bump timer. The server can be bumped right now!")
+            return
+            
+        remaining = int(next_bump - time.time())
+        if remaining <= 0:
+            await ctx.send("It's time to bump! The server can be bumped right now!")
+        else:
+            hours = remaining // 3600
+            minutes = (remaining % 3600) // 60
+            await ctx.send(f"The next bump is available in {hours}h {minutes}m.")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def setbump(self, ctx, *, time_str: str):
+        """Manually sets the bump reminder timer (e.g. 1h 46m or 46m)"""
+        total_seconds = 0
+        h_match = re.search(r'(\d+)\s*h', time_str, re.IGNORECASE)
+        m_match = re.search(r'(\d+)\s*m', time_str, re.IGNORECASE)
+        
+        if h_match:
+            total_seconds += int(h_match.group(1)) * 3600
+        if m_match:
+            total_seconds += int(m_match.group(1)) * 60
+            
+        if total_seconds > 0:
+            settings = self._load_settings()
+            settings['next_bump_time'] = time.time() + total_seconds
+            settings['bump_channel'] = ctx.channel.id
+            self._save_settings(settings)
+            
+            hours = total_seconds // 3600
+            minutes = (total_seconds % 3600) // 60
+            await ctx.send(f"✅ I have manually synced the bump timer! I will remind you to bump again in {hours}h {minutes}m.")
+        else:
+            await ctx.send("❌ Invalid time format! Please use `1h 46m` or `46m`.")
+
     @commands.Cog.listener()
     async def on_message(self, message):
         # Ignore messages from bots other than Disboard
